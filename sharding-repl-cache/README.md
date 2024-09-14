@@ -8,16 +8,10 @@
 docker compose up -d
 ```
 
-Инициализируем серверы шардированной mongodb (роутеры, шарды, серверы конфигурации) и redis cluster
+Инициализируем серверы шардированной mongodb (роутеры, шарды, серверы конфигурации) и redis cluster и заполняем шардированную mongodb тестовыми данными
 
 ```shell
-./scripts/sharding-repl-cache-init.sh
-```
-
-Заполняем шардированную mongodb тестовыми данными
-
-```shell
-./scripts/sharding-repl-cache-insert.sh
+./scripts/sharding-repl-cache-init-insert.sh
 ```
 
 ## Как проверить количество документов и реплик
