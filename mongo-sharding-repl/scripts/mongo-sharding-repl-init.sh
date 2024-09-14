@@ -1,10 +1,23 @@
 #!/bin/bash
 
+wait_for_mongosh() {
+    server=$1
+    port=$2
+
+    echo "Wait till mongosh gets available at $server"
+    while docker compose exec $server mongosh --port $port --eval "exit" 2>&1 | grep -q "ECONNREFUSED"; do
+        printf '.'
+        sleep 2
+    done
+}
+
 ###
 # Инициализируем шардированную бд
 ###
 
-# 1. Инициализируем серверы конфигурации 
+# 1. Инициализируем серверы конфигурации
+
+wait_for_mongosh configSrv1 27019
 
 docker compose exec -T configSrv1 mongosh --port 27019 --quiet <<EOF
 rs.initiate(
@@ -23,6 +36,8 @@ EOF
 
 # 2. Инициализируем replicaset shard1 
 
+wait_for_mongosh shard1-1 27021
+
 docker compose exec -T shard1-1 mongosh --port 27021 --quiet <<EOF
 rs.initiate(
   {
@@ -39,6 +54,8 @@ EOF
 
 # 3. Инициализируем replicaset shard2 
 
+wait_for_mongosh shard2-1 27022
+
 docker compose exec -T shard2-1 mongosh --port 27022 --quiet <<EOF
 rs.initiate(
   {
@@ -54,6 +71,8 @@ EOF
 
 
 # 4. Инициализируем роутер
+
+wait_for_mongosh mongos_router1 27017
 
 docker compose exec -T mongos_router1 mongosh --port 27017 --quiet <<EOF
 sh.addShard("shard1/shard1-1:27021");

@@ -2,7 +2,7 @@
 
 ## Как запустить
 
-Запускаем серверы mongodb, redis и приложения
+Запускаем серверы mongodb, redis и приложение
 
 ```shell
 docker compose up -d

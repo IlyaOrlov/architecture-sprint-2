@@ -1,10 +1,23 @@
 #!/bin/bash
 
+wait_for_mongosh() {
+    server=$1
+    port=$2
+
+    echo "Wait till mongosh gets available at $server"
+    while docker compose exec $server mongosh --port $port --eval "exit" 2>&1 | grep -q "ECONNREFUSED"; do
+        printf '.'
+        sleep 2
+    done
+}
+
 ###
-# Инициализируем шардированную бд
+# Инициализируем шардированную бд и redis cluster
 ###
 
 # 1. Инициализируем серверы конфигурации mongo
+
+wait_for_mongosh configSrv1 27019
 
 docker compose exec -T configSrv1 mongosh --port 27019 --quiet <<EOF
 rs.initiate(
@@ -23,6 +36,8 @@ EOF
 
 # 2. Инициализируем mongo replicaSet shard1 
 
+wait_for_mongosh shard1-1 27021
+
 docker compose exec -T shard1-1 mongosh --port 27021 --quiet <<EOF
 rs.initiate(
   {
@@ -39,6 +54,8 @@ EOF
 
 # 3. Инициализируем mongo replicaSet shard2 
 
+wait_for_mongosh shard2-1 27022
+
 docker compose exec -T shard2-1 mongosh --port 27022 --quiet <<EOF
 rs.initiate(
   {
@@ -52,8 +69,9 @@ rs.initiate(
 );
 EOF
 
-
 # 4. Инициализируем роутер mongos
+
+wait_for_mongosh mongos_router1 27017
 
 docker compose exec -T mongos_router1 mongosh --port 27017 --quiet <<EOF
 sh.addShard("shard1/shard1-1:27021");
@@ -64,7 +82,7 @@ sh.addShard("shard2/shard2-2:27024");
 sh.addShard("shard2/shard2-3:27026");
 
 sh.enableSharding("somedb");
-sh.shardCollection("somedb.helloDoc", { "name" : "hashed" } )
+sh.shardCollection("somedb.helloDoc", { "name" : "hashed" } );
 EOF
 
 
@@ -73,3 +91,13 @@ EOF
 docker compose exec redis1-1 redis-cli \
   --cluster create   173.17.0.11:6379   173.17.0.12:6379   173.17.0.13:6379   173.17.0.14:6379   173.17.0.15:6379   173.17.0.16:6379 \
   --cluster-replicas 1  --cluster-yes
+
+
+# 6. Заполняем шардированную бд тестовыми данными
+
+wait_for_mongosh mongos_router1 27017
+
+docker compose exec -T mongos_router1 mongosh --port 27017 --quiet <<EOF
+use somedb
+for(var i = 0; i < 1000; i++) db.helloDoc.insertOne({age:i, name:"ly"+i})
+EOF

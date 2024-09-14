@@ -211,6 +211,9 @@ services:
     image: kazhem/pymongo_api:1.0.0
     depends_on:
       - mongos_router1
+      - configSrv1
+      - shard1
+      - shard2
     ports:
       - 8080:8080
     networks:

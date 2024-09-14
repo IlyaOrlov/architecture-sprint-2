@@ -2,7 +2,13 @@
 
 ## Как запустить
 
-Запускаем mongodb и приложение
+Заходим в папку с актуальной конфигурацией приложения
+
+```shell
+cd sharding-repl-cache
+```
+
+Запускаем mongodb, redis cluster и приложение
 
 ```shell
 docker compose up -d
